@@ -1,0 +1,71 @@
+from flask import Flask, request, render_template_string
+import pandas as pd
+
+# Инициализация Flask приложения
+app = Flask(__name__)
+
+# Данные клиентов и заказов (вместо базы данных)
+clients = [
+    {"id": 1, "name": "Иван Иванов"},
+    {"id": 2, "name": "Анна Смирнова"},
+]
+
+orders = [
+    {"client_id": 1, "vehicle": "Автобус", "date": "2023-01-15"},
+    {"client_id": 1, "vehicle": "Минивэн", "date": "2023-03-10"},
+    {"client_id": 2, "vehicle": "Седан", "date": "2023-02-12"},
+]
+
+# Главная страница
+@app.route('/')
+def index():
+    return render_template_string('''
+        <h1>Рекомендательная система</h1>
+        <a href="/clients">Список клиентов</a><br>
+        <a href="/recommendations">Генерация рекомендаций</a>
+    ''')
+
+# Список клиентов
+@app.route('/clients')
+def list_clients():
+    return render_template_string('''
+        <h2>Клиенты</h2>
+        <ul>
+        {% for client in clients %}
+            <li>{{ client.name }}</li>
+        {% endfor %}
+        </ul>
+        <a href="/">На главную</a>
+    ''', clients=clients)
+
+# Генерация рекомендаций
+@app.route('/recommendations')
+def recommendations():
+    # Преобразование данных в DataFrame для анализа
+    df_orders = pd.DataFrame(orders)
+    df_clients = pd.DataFrame(clients)
+
+    # Генерация рекомендаций
+    recommendations = []
+    for client in clients:
+        client_orders = df_orders[df_orders["client_id"] == client["id"]]
+        if not client_orders.empty:
+            last_vehicle = client_orders.iloc[-1]["vehicle"]
+            recommendations.append({"name": client["name"], "recommendation": f"Похожий {last_vehicle}"})
+        else:
+            recommendations.append({"name": client["name"], "recommendation": "Рекомендуем Седан"})
+
+    # Отображение рекомендаций
+    return render_template_string('''
+        <h2>Рекомендации</h2>
+        <ul>
+        {% for rec in recommendations %}
+            <li>{{ rec.name }}: {{ rec.recommendation }}</li>
+        {% endfor %}
+        </ul>
+        <a href="/">На главную</a>
+    ''', recommendations=recommendations)
+
+# Запуск приложения
+if __name__ == '__main__':
+    app.run(debug=True)
